@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { extractMainContent } from "../src/extract.js";
 import { ingest, fetchByCursor, _resetForTests } from "../src/chunker.js";
+import { compress } from "../src/compress.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = resolve(__dirname, "fixtures");
@@ -123,6 +124,44 @@ describe("fixture: Wikipedia MCP article (long, structured)", () => {
     }
     assert.equal(combined.length, result.markdown.length);
     assert.equal(chunksWalked, out.meta.total_chunks);
+  });
+});
+
+describe("fixture: compression ratio on real pages", () => {
+  it("Zenn article achieves measurable reduction without losing technical content", async () => {
+    const html = await loadFixture("zenn-article.html");
+    const extracted = extractMainContent(
+      html,
+      "https://zenn.dev/zhizhiarv/articles/claude-code-webfetch-haiku-summary",
+    );
+    const r = compress(extracted.markdown);
+    const ratio = (r.before - r.after) / r.before;
+    assert.ok(
+      ratio > 0.02 && ratio < 0.30,
+      `Zenn compression ratio ${(ratio * 100).toFixed(1)}% out of expected band (2-30%)`,
+    );
+    // Technical terms must survive — these are the substance of the article.
+    for (const term of ["WebFetch", "Haiku", "Claude", "MCP"]) {
+      assert.ok(
+        r.compressed.includes(term),
+        `compression dropped technical term: ${term}`,
+      );
+    }
+  });
+
+  it("Wikipedia article achieves measurable reduction", async () => {
+    const html = await loadFixture("wikipedia-mcp.html");
+    const extracted = extractMainContent(
+      html,
+      "https://en.wikipedia.org/wiki/Model_Context_Protocol",
+    );
+    const r = compress(extracted.markdown);
+    const ratio = (r.before - r.after) / r.before;
+    assert.ok(
+      ratio > 0.005 && ratio < 0.30,
+      `Wikipedia compression ratio ${(ratio * 100).toFixed(1)}% out of expected band (0.5-30%)`,
+    );
+    assert.ok(r.compressed.includes("Model Context Protocol"));
   });
 });
 

@@ -11,6 +11,8 @@ export interface ChunkMeta {
   final_url: string;
   content_type: string;
   extracted_main: boolean;
+  compressed: boolean;
+  original_chars: number | null;
   truncated: false;
 }
 
@@ -19,6 +21,8 @@ interface StoredEntry {
   finalUrl: string;
   contentType: string;
   extractedMain: boolean;
+  compressed: boolean;
+  originalChars: number | null;
   text: string;
   chunkSize: number;
   totalChunks: number;
@@ -93,6 +97,8 @@ export interface IngestInput {
   extractedMain: boolean;
   text: string;
   chunkSize: number;
+  compressed?: boolean;
+  originalChars?: number | null;
 }
 
 export interface ChunkOutput {
@@ -107,11 +113,16 @@ export function ingest(input: IngestInput): ChunkOutput {
   const chunks = splitIntoChunks(input.text, input.chunkSize);
   const entryId = randomUUID();
 
+  const compressed = input.compressed ?? false;
+  const originalChars = input.originalChars ?? null;
+
   store.set(entryId, {
     url: input.url,
     finalUrl: input.finalUrl,
     contentType: input.contentType,
     extractedMain: input.extractedMain,
+    compressed,
+    originalChars,
     text: input.text,
     chunkSize: input.chunkSize,
     totalChunks: chunks.length,
@@ -137,6 +148,8 @@ export function ingest(input: IngestInput): ChunkOutput {
       final_url: input.finalUrl,
       content_type: input.contentType,
       extracted_main: input.extractedMain,
+      compressed,
+      original_chars: originalChars,
       truncated: false,
     },
   };
@@ -187,6 +200,8 @@ export function fetchByCursor(cursor: string): ChunkOutput {
       final_url: entry.finalUrl,
       content_type: entry.contentType,
       extracted_main: entry.extractedMain,
+      compressed: entry.compressed,
+      original_chars: entry.originalChars,
       truncated: false,
     },
   };

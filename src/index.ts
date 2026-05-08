@@ -4,6 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { fetchUrl } from "./fetch.js";
 import { fetchByCursor, ingest, type ChunkOutput } from "./chunker.js";
+import { compress as genshijinCompress } from "./compress.js";
 
 // Claude Code's tool-result ceiling is ~25k tokens. Japanese text averages
 // ~1.5 chars/token, English/markup ~3-4 chars/token. 25,000 chars keeps a
@@ -46,6 +47,12 @@ const fetchInputSchema = z.object({
     .max(120_000)
     .default(30_000)
     .describe("Network timeout in milliseconds"),
+  compress: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Apply genshijin compression to the prose before chunking. Strips fillers/articles/敬語 etc.; protects code/URLs/identifiers. Useful for reducing context spend on long pages. Lossy for prose surface form, lossless for technical content. Default false.",
+    ),
 });
 
 server.registerTool(
@@ -56,18 +63,27 @@ server.registerTool(
       "Fetch a URL and return its full content as markdown. Honest replacement for Claude Code WebFetch: no Haiku summarization, no silent truncation. Long pages return the first chunk plus next_cursor for pagination via fetch_chunk.",
     inputSchema: fetchInputSchema,
   },
-  async ({ url, extract_main, chunk_size, timeout_ms }) => {
+  async ({ url, extract_main, chunk_size, timeout_ms, compress }) => {
     const page = await fetchUrl(url, {
       extractMain: extract_main,
       timeoutMs: timeout_ms,
     });
+    let text = page.markdown;
+    let originalChars: number | null = null;
+    if (compress) {
+      const result = genshijinCompress(text);
+      originalChars = result.before;
+      text = result.compressed;
+    }
     const out = ingest({
       url: page.url,
       finalUrl: page.finalUrl,
       contentType: page.contentType,
       extractedMain: page.extractedMain,
-      text: page.markdown,
+      text,
       chunkSize: chunk_size,
+      compressed: compress,
+      originalChars,
     });
     return toToolResult(out);
   },
@@ -100,6 +116,10 @@ function toToolResult(out: ChunkOutput) {
 
 function formatMetaHeader(out: ChunkOutput): string {
   const m = out.meta;
+  const compressedLine =
+    m.compressed && m.original_chars != null
+      ? `compressed: true (genshijin, ${m.original_chars} → ${m.total_chars} chars, ${(((m.original_chars - m.total_chars) / m.original_chars) * 100).toFixed(1)}% reduction)`
+      : `compressed: false`;
   const lines = [
     `<!-- mcp-genshijin-fetch meta`,
     `source: ${m.source_url}`,
@@ -107,6 +127,7 @@ function formatMetaHeader(out: ChunkOutput): string {
     `content-type: ${m.content_type || "(unknown)"}`,
     `chunk: ${m.chunk_index + 1}/${m.total_chunks} (${m.chunk_chars} chars of ${m.total_chars} total)`,
     `extracted_main: ${m.extracted_main}`,
+    compressedLine,
     m.has_next
       ? `has_next: true — call fetch_chunk with cursor "${m.next_cursor}"`
       : `has_next: false (final chunk)`,
