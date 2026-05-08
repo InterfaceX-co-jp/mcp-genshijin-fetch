@@ -5,8 +5,12 @@ import { z } from "zod";
 import { fetchUrl } from "./fetch.js";
 import { fetchByCursor, ingest, type ChunkOutput } from "./chunker.js";
 
-const DEFAULT_CHUNK_SIZE = 80_000;
-const MAX_CHUNK_SIZE = 200_000;
+// Claude Code's tool-result ceiling is ~25k tokens. Japanese text averages
+// ~1.5 chars/token, English/markup ~3-4 chars/token. 25,000 chars keeps a
+// pure-Japanese chunk under ~17k tokens — safe for Claude Code with margin
+// for the meta header and JSON-RPC envelope.
+const DEFAULT_CHUNK_SIZE = 25_000;
+const MAX_CHUNK_SIZE = 100_000;
 
 const server = new McpServer(
   { name: "mcp-genshijin-fetch", version: "0.1.0" },
