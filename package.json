@@ -1,0 +1,56 @@
+{
+  "name": "mcp-genshijin-fetch",
+  "version": "0.1.0",
+  "description": "MCP server that fetches URLs and returns raw markdown — no Haiku summarization, no silent truncation. Cursor-based pagination for long pages.",
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://github.com/InterfaceX-co-jp/mcp-genshijin-fetch",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/InterfaceX-co-jp/mcp-genshijin-fetch.git"
+  },
+  "author": "InterfaceX-co-jp",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "fetch",
+    "webfetch",
+    "markdown",
+    "genshijin",
+    "原始人"
+  ],
+  "main": "dist/index.js",
+  "bin": {
+    "mcp-genshijin-fetch": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "test": "node --test --import tsx tests/*.test.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@mozilla/readability": "^0.5.0",
+    "jsdom": "^25.0.1",
+    "turndown": "^7.2.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^22.9.0",
+    "@types/turndown": "^5.0.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
