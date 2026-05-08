@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Ad-hoc integration smoke test against real URLs.
-// Run: node tests/integration/smoke.mjs
+// Live integration test — hits real URLs. Not run in CI (flaky/slow).
+// Run manually:  node tests/integration/live.mjs
+// For offline reproducible tests, see tests/fixtures.test.ts (run via `npm test`).
 // Requires: built dist/ (run `npm run build` first)
 
 import { spawn } from "node:child_process";

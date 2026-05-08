@@ -94,6 +94,21 @@ has_next: true — call fetch_chunk with cursor "9c4a..."
 [genshijin](https://github.com/InterfaceX-co-jp/genshijin) ecosystem の一部。哲学:「意味保持で減量」。
 本server は `fetch` 経路の不可逆圧縮 (Haiku要約) を排除 — genshijin が出力経路で行う**可逆**圧縮の対極にある問題への回答。
 
+## 開発
+
+```bash
+npm install
+npm run build      # tsc → dist/
+npm test           # unit + fixture (offline) tests
+```
+
+### テスト構成
+
+- `tests/chunker.test.ts` — chunker 単体
+- `tests/fixtures.test.ts` — `tests/fixtures/` の HTML スナップショットで extract + chunker を end-to-end 検証 (CI で実行)
+- `tests/integration/live.mjs` — **実 URL を叩く** integration test。CI では走らせない (flaky/slow)。手動 run: `node tests/integration/live.mjs`
+- `tests/integration/capture-fixtures.mjs` — 実 URL から fixture 再取得
+
 ## ロードマップ
 
 - [ ] genshijin圧縮統合 (`fetch` に `compress: true` オプション)
